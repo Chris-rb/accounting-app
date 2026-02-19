@@ -1,1 +1,1 @@
-# sccounting-app
+# accounting-app
