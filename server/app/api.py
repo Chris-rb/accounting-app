@@ -1,5 +1,5 @@
 from hashlib import sha256
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, get_jwt, unset_jwt_cookies, get_jwt_identity
 from .extensions import db
@@ -28,7 +28,7 @@ def hash_password(password_string: str):
 
 
 def set_password_expiry():
-    return (datetime.now() +  timedelta(weeks=PASSWORD_EXPIRY_WEEKS))
+    return (datetime.now(timezone.utc) +  timedelta(weeks=PASSWORD_EXPIRY_WEEKS))
     
 
 @api_bp.post("auth/login")
@@ -48,7 +48,7 @@ def login():
     if auth_user is None:
         return f"No account found with usrname: {username} and password: {password}", 400
      
-    if auth_user.password_expiry <= datetime.now():
+    if auth_user.password_expiry <= datetime.now(timezone.utc):
         return "Password is expired", 400
     
     if auth_user.account_status != "Active":
@@ -107,10 +107,13 @@ def create_user():
         assigned_role = Roles.ACCOUNTANT.value
         status = AccountStatus.PENDING.value
     
-    username = f"{user_data['firstname'][0]}{user_data['lastname']}{datetime.now().strftime('%m%y')}"
+    username = f"{user_data['firstname'][0]}{user_data['lastname']}{datetime.now(timezone.utc).strftime('%m%y')}"
     
+    # convert dob to datetime
     date_format = '%Y-%m-%dT%H:%M:%S.%fZ'
     user_dob = datetime.strptime(user_data["dateOfBirth"], date_format)
+    
+    creation_dt = datetime.now(timezone.utc)
     
     new_user = User(
         username=username,
@@ -121,7 +124,8 @@ def create_user():
         password_expiry=set_password_expiry(),
         date_of_birth=user_dob,
         role=assigned_role,
-        account_status=status
+        account_status=status,
+        created_at = creation_dt
     )
     
     db.session.add(new_user)
@@ -129,7 +133,8 @@ def create_user():
     
     new_password = PasswordHistory(
         user_id = new_user.id,
-        password = hash_password(user_data["password"])
+        password = hash_password(user_data["password"]),
+        created_at = creation_dt
     ) 
     
     new_user_address = Address(
@@ -138,7 +143,8 @@ def create_user():
         address_line_2 = address_data["addressLine2"],
         city = address_data["city"],
         state = address_data["state"],
-        zipcode = address_data["zipcode"]
+        zipcode = address_data["zipcode"],
+        created_at = creation_dt
     )
     
     new_user_security_qa = SecurityQA(
@@ -146,7 +152,8 @@ def create_user():
         security_ques_1 = security_ques_data["securityQues1"],
         security_ans_1 = security_ques_data["securityAns1"],
         security_ques_2 = security_ques_data["securityQues2"],
-        security_ans_2 = security_ques_data["securityAns2"]
+        security_ans_2 = security_ques_data["securityAns2"],
+        created_at = creation_dt
     )
     
     db.session.add(new_password)
@@ -218,17 +225,21 @@ def update_user(user_id: int):
     if not user_details:
         return "Unable to retrieve user details", 404
     
+    modified_dt = datetime.now(timezone.utc)
+    
+    update_user.modified_at = modified_dt
     for key, value in user_details.items():
         try:
             setattr(update_user, key, value)
         except Exception as e:
-            print(f"unable to update {key}")
+            print(f"Unable to update {key}")
             
+    addr_details["modified_at"] = modified_dt
     for key, value in addr_details.items():
         try:
             setattr(update_address, key, value)
         except Exception as e:
-            print(f"unable to update {key}")
+            print(f"Unable to update {key}")
             
     db.session.commit()
     
@@ -344,10 +355,13 @@ def deactivate_user(user_id: int):
     
     deact_user = User.query.get(user_id)
     
+    modified_dt = datetime.now(timezone.utc)
+    
     if not deact_user:
         return f"No user found with user_id: {user_id}", 404
     
     deact_user.account_status = AccountStatus.DEACTIVATED.value
+    deact_user.modified_at = modified_dt
     
     db.session.commit()
     
@@ -366,10 +380,13 @@ def activate_user(user_id: int):
     
     pending_user = User.query.get(user_id)
     
+    modified_dt = datetime.now(timezone.utc)
+    
     if not pending_user:
         return f"No user found with user_id: {user_id}", 404
     
     pending_user.account_status = AccountStatus.ACTIVE.value
+    pending_user.modified_at = modified_dt
     
     db.session.commit()
     
@@ -395,17 +412,22 @@ def suspend_user(user_id: int):
     if not suspended_user:
         return f"No User found with user_id {user_id}", 404
     
+    created_dt = datetime.now(timezone.utc)
+    modified_dt = created_dt
+    
     if suspend_user_at > suspend_user_until:
         return "Suspension start must be before suspension end", 404
-    if suspend_user_at < datetime.now() and suspend_user_until < datetime.now():
+    if suspend_user_at < datetime.now(timezone.utc) and suspend_user_until < datetime.now(timezone.utc):
         return "Suspension range must not be in the past", 401
-    elif suspend_user_at < datetime.now():
+    elif suspend_user_at < datetime.now(timezone.utc):
         suspended_user.account_status = AccountStatus.SUSPENDED.value
+        suspended_user.modified_at = modified_dt
     
     new_suspension = SuspendedUsers(
         user_id = user_id,
         suspended_at = suspend_user_at,
-        suspended_until = suspend_user_until
+        suspended_until = suspend_user_until,
+        created_at = created_dt
     )
     
     db.session.add(new_suspension)
