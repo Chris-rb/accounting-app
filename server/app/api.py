@@ -31,23 +31,6 @@ def set_password_expiry():
     return (datetime.now() +  timedelta(weeks=PASSWORD_EXPIRY_WEEKS))
     
 
-@api_bp.get("/hello")
-@jwt_required()
-def hello():
-    claims = get_jwt()
-    
-    requester_role = claims.get("role")
-    
-    data = request.args.get("userData")
-    
-    if requester_role == Roles.ADMIN.value:
-        response = jsonify({"message": "hello!", "data": data})
-    else:
-        response = jsonify({"message": "nah brah"})
-    return response
-
-
-# rename to auth/login
 @api_bp.post("auth/login")
 def login():
     data = request.get_json()
@@ -86,7 +69,7 @@ def login():
         
     return response
 
-#rename to auth/logout
+
 @api_bp.post("auth/logout")
 def logout():
     response = jsonify({"message": "logout successful"})
@@ -176,8 +159,6 @@ def create_user():
     return "Successfully created an account", 201
     
     
-    
-    # change to users/active
 @api_bp.get("/users/active")
 @jwt_required()
 def get_active_users():
@@ -214,7 +195,6 @@ def get_pending_users():
     return jsonify(pending_users), 200
     
     
-
 @api_bp.patch("/users/<int:user_id>")
 @jwt_required()
 def update_user(user_id: int):
@@ -255,31 +235,30 @@ def update_user(user_id: int):
     return f"successfully updated user details for user with id {user_id}", 200
     
 
-    # change to users/id/role
-@api_bp.put("/assign_role/<int:user_id>")
-@jwt_required()
-def assign_role(user_id: int):
-    claims = get_jwt()
+#     # change to users/id/role
+# @api_bp.put("/assign_role/<int:user_id>")
+# @jwt_required()
+# def assign_role(user_id: int):
+#     claims = get_jwt()
     
-    requester_role = claims.get("role")
+#     requester_role = claims.get("role")
     
-    if requester_role != Roles.ADMIN.value:
-        return "Unautheried request", 401
+#     if requester_role != Roles.ADMIN.value:
+#         return "Unautheried request", 401
     
-    data = request.get_json()
-    new_role = data.get("role")
+#     data = request.get_json()
+#     new_role = data.get("role")
     
-    update_user = User.query.get(user_id)
+#     update_user = User.query.get(user_id)
     
-    if not update_user:
-        return f"No user found with id: {user_id}", 404
+#     if not update_user:
+#         return f"No user found with id: {user_id}", 404
     
-    update_user.role = new_role
+#     update_user.role = new_role
     
-    db.session.commit()
+#     db.session.commit()
 
 
-# change to auth/forgot-password
 @api_bp.post("/auth/forgot-password")
 def forgot_password():
     data = request.get_json()
@@ -322,12 +301,6 @@ def reset_password():
     data = request.get_json()
     new_password = hash_password(data.get("password"))
     
-    # or maybe pass user_id on successful forgot_password to client
-    # if not, will have to get user_id by email lookup firts
-    # email_exists = User.query.filter(
-    #     User.email == email_addr
-    # ).first()
-    
     user_id = int(get_jwt_identity())
     
     user = User.query.get(user_id)
@@ -359,7 +332,6 @@ def reset_password():
     return "New password successfully updated", 200
 
 
-# change to users/id/deactivate
 @api_bp.patch("/users/<int:user_id>/deactivate")
 @jwt_required()
 def deactivate_user(user_id: int):
@@ -380,7 +352,6 @@ def deactivate_user(user_id: int):
     db.session.commit()
     
     return "User account successfully deactivated", 200
-
 
 
 @api_bp.patch("/users/<int:user_id>/activate")
@@ -405,7 +376,6 @@ def activate_user(user_id: int):
     return "User account successfully activated", 200
 
 
-# change to users/id/suspend
 @api_bp.patch("/users/<int:user_id>/suspend")
 @jwt_required()
 def suspend_user(user_id: int):
