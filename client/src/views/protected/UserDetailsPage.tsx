@@ -354,7 +354,7 @@ const UserDetailsPage = (): JSX.Element => {
                 <TextField 
                     label="Address Line 2"
                     disabled={!editable}
-                    value={address.addressLine2 || ""}
+                    value={address.addressLine2 ?? ""}
                     onChange={(e) => changeAddressLine2(e.currentTarget.value)}
                     sx={{
                         gridArea: "grid-item-8",
