@@ -13,10 +13,12 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     password_expiry = db.Column(db.DateTime, nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
-    role = db.Column(db.String(20), nullable=True)
+    role = db.Column(db.String(20), nullable=False)
     account_status = db.Column(db.String(25), nullable=False)
     address = db.relationship("Address", backref="user")
     security_qa = db.relationship("SecurityQA", backref="user")
+    created_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
@@ -29,7 +31,9 @@ class User(db.Model):
             "dateOfBirth": self.date_of_birth.isoformat() if self.date_of_birth else None,
             "role" : self.role,
             "accountStatus": self.account_status,
-            "address": [addr.to_dict() for addr in self.address][0]
+            "address": [addr.to_dict() for addr in self.address][0],
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
         }
         
 class Address(db.Model):
@@ -42,6 +46,8 @@ class Address(db.Model):
     city = db.Column(db.String(50), nullable=False)
     state = db.Column(db.String(20), nullable=False)
     zipcode = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
@@ -51,7 +57,9 @@ class Address(db.Model):
             "addressLine2": self.address_line_2,
             "city": self.city,
             "state": self.state,
-            "zipcode": self.zipcode
+            "zipcode": self.zipcode,
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
         }
     
     
@@ -64,6 +72,8 @@ class SecurityQA(db.Model):
     security_ans_1 = db.Column(db.String(50), nullable=False)
     security_ques_2 = db.Column(db.String(120), nullable=False)
     security_ans_2 = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
@@ -73,6 +83,8 @@ class SecurityQA(db.Model):
             "securityAns1": self.security_ans_1,
             "securityQues2": self.security_ques_2,
             "securityAns2": self.security_ans_2,
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
         }
         
     
@@ -82,12 +94,16 @@ class PasswordHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     password = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
             "id": self.id,
             "userId": self.user_id,
-            "password": self.password
+            "password": self.password,
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
         }
         
         
@@ -98,11 +114,15 @@ class SuspendedUsers(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     suspended_at = db.Column(db.DateTime, nullable=False)
     suspended_until= db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    modified_at = db.Column(db.DateTime)
     
     def to_dict(self):
         return {
             "id": self.id,
             "userId": self.user_id,
             "suspendedAt": self.suspended_at,
-            "suspendedUntil": self.suspended_until
+            "suspendedUntil": self.suspended_until,
+            "createdAt": self.created_at,
+            "modifiedAt": self.modified_at,
         }
